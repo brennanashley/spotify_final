@@ -5,7 +5,7 @@ from fastapi import APIRouter
 from sklearn.neighbors import NearestNeighbors
 import pandas as pd
 import numpy as np
-import json
+
 
 log = logging.getLogger(__name__)
 router = APIRouter()
@@ -16,7 +16,7 @@ async def song_choice(song_id):
     """
     Let us help you find new songs using our nearest neighbors model!
     """
-    df = pd.read_csv("https://raw.githubusercontent.com/brennanashley/DS-Build-3-Spotify/main/spotify_data.csv")
+    df = pd.read_csv("https://raw.githubusercontent.com/brennanashley/spotify_final/master/spotify_data_filtered.csv")
     # columns to drop for fitting
     c = ["duration_ms", "index", "genre", "artist_name", "track_id", "track_name", "key", "mode"]
     # get song from user input
@@ -29,6 +29,6 @@ async def song_choice(song_id):
     nn.fit(df_selected.drop(columns=c))
     song = song.drop(index=c)
     song = np.array(song).reshape(1, -1)
-    result = df_selected.iloc[nn.kneighbors(song)[1][0][1:11]].to_json(orient="records")  # Return results as json
-    parsed = json.loads(result)
-    return json.dumps(parsed, indent=3)
+    new = df_selected.iloc[nn.kneighbors(song)[1][0][1:11]]
+    new2 = new[['artist_name', 'track_id', 'track_name']].copy()
+    return new2.to_json(orient="records")
