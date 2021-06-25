@@ -78,8 +78,10 @@ def doublecheck(song_id):
     plt.savefig(pic_bytes, format="png")
     pic_bytes.seek(0)
     data = base64.b64encode(pic_bytes.read()).decode("ascii")
+    return heatplot
     #  plt.clf()
-    return "<img src='data:image/png;base64,{}'>".format(data)
+   # return "<img src='data:image/png;base64,{}'>".format(data).to_json()
+
 
 
 #  return fig # .to_json()

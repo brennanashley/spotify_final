@@ -57,7 +57,7 @@ async def song_viz(song_id):
     plt.savefig(pic_bytes, format="png")
     pic_bytes.seek(0)
     data = base64.b64encode(pic_bytes.read()).decode("ascii")
-#    plt.clf()
+    plt.clf()
     return "<img src='data:image/png;base64,{}'>".format(data)
 
 

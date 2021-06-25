@@ -16,7 +16,7 @@ async def song_choice(song_id):
     """
     Let us help you find new songs using our nearest neighbors model!
     """
-    df = pd.read_csv("https://raw.githubusercontent.com/brennanashley/spotify_final/master/spotify_data_filtered.csv")
+    df = pd.read_csv("https://raw.githubusercontent.com/brennanashley/DS-Build-3-Spotify/main/spotify_data.csv")
     # columns to drop for fitting
     c = ["duration_ms", "index", "genre", "artist_name", "track_id", "track_name", "key", "mode"]
     # get song from user input
