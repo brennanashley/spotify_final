@@ -32,3 +32,5 @@ async def song_choice(song_id):
     new = df_selected.iloc[nn.kneighbors(song)[1][0][1:11]]
     new2 = new[['artist_name', 'track_id', 'track_name']].copy()
     return new2.to_json(orient="records")
+
+

@@ -22,7 +22,7 @@ matplotlib = "*"
 scikit-learn = "*"
 sklearn = "*"
 numpy = "*"
-
+seaborn = "*"
 
 [requires]
 python_version = "3"

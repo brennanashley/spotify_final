@@ -1,57 +1,64 @@
 """Data visualization functions"""
-"""I don't know if we'll have to do these. Here was an example"""
 
 from fastapi import APIRouter, HTTPException
 import pandas as pd
 import plotly.express as px
+import seaborn as sns
+from sklearn.neighbors import NearestNeighbors
+import numpy as np
+import base64
+import io
+import matplotlib.ticker as ticker
+import matplotlib.cm as cm
+import matplotlib as mpl
+
+import matplotlib.pyplot as plt
+
 
 router = APIRouter()
 
 
-@router.get('/viz/{statecode}')
-async def viz(statecode: str):
+@router.get('/viz')
+async def song_viz(song_id):
     """
-    Visualize state unemployment rate from [Federal Reserve Economic Data](https://fred.stlouisfed.org/) 📈
-    
-    ### Path Parameter
-    `statecode`: The [USPS 2 letter abbreviation](https://en.wikipedia.org/wiki/List_of_U.S._state_and_territory_abbreviations#Table) 
-    (case insensitive) for any of the 50 states or the District of Columbia.
-
-    ### Response
-    JSON string to render with [react-plotly.js](https://plotly.com/javascript/react/)
+    Here's a heatmat to show you how your song recommendations compare!
     """
+    df = pd.read_csv("https://raw.githubusercontent.com/brennanashley/DS-Build-3-Spotify/main/spotify_data.csv")
+    # columns to drop for fitting
+    c = ["duration_ms", "index", "genre", "artist_name", "track_id", "track_name", "key", "mode"]
+    # get song from user input
+    song = df[df["track_id"] == song_id].iloc[0]
+    df_selected = df.copy()
+    if not pd.isnull(song["genre"]):  # If genre, set subset to only genre
+        df_selected = df[df["genre"] == song["genre"]]
+    # nearest neighbors
+    nn = NearestNeighbors(n_neighbors=11, algorithm="kd_tree")
+    nn.fit(df_selected.drop(columns=c))
+    song = song.drop(index=c)
+    song = np.array(song).reshape(1, -1)
+    new = df_selected.iloc[nn.kneighbors(song)[1][0][1:11]]
+    new2 = new[
+        ['energy', 'danceability', 'key', 'popularity', 'acousticness', 'instrumentalness', 'liveness', 'loudness',
+         'mode', 'tempo', 'speechiness', 'valence']].copy()
 
-    # Validate the state code
-    statecodes = {
-        'AL': 'Alabama', 'AK': 'Alaska', 'AZ': 'Arizona', 'AR': 'Arkansas', 
-        'CA': 'California', 'CO': 'Colorado', 'CT': 'Connecticut', 
-        'DE': 'Delaware', 'DC': 'District of Columbia', 'FL': 'Florida', 
-        'GA': 'Georgia', 'HI': 'Hawaii', 'ID': 'Idaho', 'IL': 'Illinois', 
-        'IN': 'Indiana', 'IA': 'Iowa', 'KS': 'Kansas', 'KY': 'Kentucky', 
-        'LA': 'Louisiana', 'ME': 'Maine', 'MD': 'Maryland', 
-        'MA': 'Massachusetts', 'MI': 'Michigan', 'MN': 'Minnesota', 
-        'MS': 'Mississippi', 'MO': 'Missouri', 'MT': 'Montana', 
-        'NE': 'Nebraska', 'NV': 'Nevada', 'NH': 'New Hampshire', 
-        'NJ': 'New Jersey', 'NM': 'New Mexico', 'NY': 'New York', 
-        'NC': 'North Carolina', 'ND': 'North Dakota', 'OH': 'Ohio', 
-        'OK': 'Oklahoma', 'OR': 'Oregon', 'PA': 'Pennsylvania', 
-        'RI': 'Rhode Island', 'SC': 'South Carolina', 'SD': 'South Dakota', 
-        'TN': 'Tennessee', 'TX': 'Texas', 'UT': 'Utah', 'VT': 'Vermont', 
-        'VA': 'Virginia', 'WA': 'Washington', 'WV': 'West Virginia', 
-        'WI': 'Wisconsin', 'WY': 'Wyoming'
-    }
-    statecode = statecode.upper()
-    if statecode not in statecodes:
-        raise HTTPException(status_code=404, detail=f'State code {statecode} not found')
+    fig = plt.figure()
+    fig, ax = plt.subplots(1, 1, figsize=(10, 30))
+    heatplot = ax.imshow(new2, cmap='YlGn')
+    ax.set_xticklabels(new.track_name)
+    ax.set_yticklabels(new2.columns)
+    plt.xticks(rotation=45)
+    tick_spacing = 1
+    ax.xaxis.set_major_locator(ticker.MultipleLocator(tick_spacing))
+    ax.yaxis.set_major_locator(ticker.MultipleLocator(tick_spacing))
+    ax.set_title("Spotify Recommendation Comparisons")
+    ax.set_xlabel('Track Name')
+    ax.set_ylabel('Attributes')
+    pic_bytes = io.BytesIO()
+    plt.savefig(pic_bytes, format="png")
+    pic_bytes.seek(0)
+    data = base64.b64encode(pic_bytes.read()).decode("ascii")
+#    plt.clf()
+    return "<img src='data:image/png;base64,{}'>".format(data)
 
-    # Get the state's unemployment rate data from FRED
-    url = f'https://fred.stlouisfed.org/graph/fredgraph.csv?id={statecode}UR'
-    df = pd.read_csv(url, parse_dates=['DATE'])
-    df.columns = ['Date', 'Percent']
 
-    # Make Plotly figure
-    statename = statecodes[statecode]
-    fig = px.line(df, x='Date', y='Percent', title=f'{statename} Unemployment Rate')
 
-    # Return Plotly figure as JSON string
-    return fig.to_json()
